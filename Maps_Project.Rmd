@@ -1,0 +1,172 @@
+---
+title: "Maps Project"
+author: "Wesley Stanis"
+output:
+  word_document: default
+  pdf_document: default
+  html_notebook: default
+---
+
+```{r setup, include=FALSE}
+# Install packages if necessary
+```
+
+
+
+install.packages("ggmap")
+install.packages("zipcodez")
+install.packages("scales")
+install.packages("rlang")
+install.packages("stringi")
+install.packages("zipcode")
+
+
+
+```{r}
+library(ggplot2)
+library(ggmap)
+library(zipcode)
+
+df <- read.csv("locData.csv")
+colnames(df) <- c("zip","median","mean","population")
+
+
+data("zipcode")
+
+```
+
+
+
+```{r}
+#subsetting to remove Alaska and Hawaii
+dfzip1 <- subset(zipcode,zipcode$state != "AK")
+dfzip2 <- subset(zipcode,zipcode$state != "HI")
+
+```
+
+
+
+```{r}
+#merging data by zip codes into new dataframe
+df1 <- merge(x=df, y=dfzip2, by="zip")
+```
+
+
+
+```{r}
+state <- sort(unique(df1$state))
+```
+
+
+
+```{r}
+#getting the average median income and total population by state
+amidf1 <- tapply(as.numeric(df1$median), df1$state, mean)
+sdf1 <- tapply(as.numeric(df1$population), df1$state, sum)
+```
+
+
+
+
+```{r}
+#making a new dataframe
+ndf <- data.frame(amidf1, sdf1, state)
+```
+
+
+
+
+```{r}
+#matching states with abbreviations
+ndf$states <- state.name[match(ndf$state, state.abb)]
+```
+
+```{r}
+us <- map_data("state")
+```
+
+```{r}
+#plotting map
+map.simple <- ggplot() 
+map.simple <- map.simple + geom_map(map = us, aes(x = us$long, y = us$lat, map_id=us$region))
+```
+
+
+
+
+```{r}
+#adding coordinates
+map.simple <- map.simple + coord_map()
+map.simple
+```
+
+```{r}
+ndf$states <- tolower(ndf$states)
+
+```
+
+
+
+
+```{r}
+#filling map by averave median income
+amimap <- map.simple + geom_map(data=ndf, map=us, aes(fill=amidf1,map_id=states, col=amidf1))
+
+amimap
+
+```
+
+
+```{r}
+#filling map by state population
+spopmap <- map.simple + geom_map(data=ndf, map=us, aes(fill=sdf1, map_id=states, col=sdf1))
+
+spopmap
+
+```
+
+
+
+```{r}
+#map with zip code density
+zipmap <- map.simple + stat_density2d(aes(x= df1$longitude, y= df1$latitude), data = df1) + scale_fill_gradient(low="white", high="black")
+                                      
+zipmap
+
+```
+
+
+
+
+
+
+
+
+
+
+```{r}
+#coordinates for New York
+zoom <- geocode("New York", source = "dsk")
+zoom
+```
+```{r}
+#setting parameters to zoom map to New York
+zoomAmount <- 3
+centerx <-zoom$lon
+centery <-zoom$lat
+ylimit <- c(centery - zoomAmount, centery + zoomAmount)
+xlimit <- c(centerx - zoomAmount, centerx + zoomAmount)
+```
+
+```{r}
+#zooming in on new york. Map is filled by state population
+spopmap + coord_cartesian(x = xlimit, y = ylimit)
+```
+
+
+
+
+
+
+
+
