@@ -1,5 +1,5 @@
 # US-Maps-Project
-Project in R to demonstrate map visualizations
+### Simple project in R to demonstrate map visualizations
 
 This project requires R. Installing R-studio is recommended.
 
